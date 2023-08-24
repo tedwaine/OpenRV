@@ -22,7 +22,7 @@
 #include <sys/sysctl.h>
 #endif
 
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
 #include <mach/host_info.h>
 #include <mach/mach_host.h>
 #include <mach/mach_init.h>
@@ -44,7 +44,7 @@ size_t SystemInfo::m_useableMemory = 0;
 //----------------------------------------------------------------------
 //----------------------------------------------------------------------
 
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
 //
 //  10.3 this is not defined (anywhere I can tell). In 10.4 it is.
 //

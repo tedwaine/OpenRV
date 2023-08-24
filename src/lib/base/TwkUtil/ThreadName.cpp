@@ -16,7 +16,7 @@ using namespace std;
 
 void setThreadName(const string& name)
 {
-#if defined(PLATFORM_APPLE_MACH_BSD)
+#if defined(PLATFORM_DARWIN)
     pthread_setname_np(name.c_str());
 #endif
 
@@ -28,7 +28,7 @@ void setThreadName(const string& name)
 string getThreadName()
 {
     string s;
-#if defined(PLATFORM_APPLE_MACH_BSD)
+#if defined(PLATFORM_DARWIN)
     char buf[32];
     pthread_getname_np(pthread_self(), buf, 32);
     s = buf;

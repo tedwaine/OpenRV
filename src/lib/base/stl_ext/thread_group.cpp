@@ -45,7 +45,7 @@ static int currentTime(struct timeval *tv)
 } 
 #endif
 
-#if defined(PLATFORM_APPLE_MACH_BSD)
+#if defined(PLATFORM_DARWIN)
 static int currentTime(struct timeval *tp) { return gettimeofday(tp, 0); }
 #endif
 
@@ -212,7 +212,7 @@ thread_group::thread_main(void *arg)
     thread_package pack = *((thread_package*) arg);
     pack.group->debug("thread_main: worker in main, thread_package: %p", arg);
 
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
     //
     //  Set the initial name to thread_group to indicate that the thread
     //  has not yet been used.

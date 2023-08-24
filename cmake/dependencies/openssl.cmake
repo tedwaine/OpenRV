@@ -67,8 +67,8 @@ IF(${RV_OSX_EMULATION})
   LIST(APPEND _make_command --arch=${RV_OSX_EMULATION_ARCH})
 ENDIF()
 
-IF(RV_TARGET_IS_RHEL9
-   OR RV_TARGET_IS_RHEL8
+IF(RV_TARGET_RHEL9
+   OR RV_TARGET_RHEL8
 )
   SET(_crypto_lib_name
       ${CMAKE_SHARED_LIBRARY_PREFIX}crypto${CMAKE_SHARED_LIBRARY_SUFFIX}.1.1
@@ -93,11 +93,6 @@ SET(_crypto_lib
 SET(_ssl_lib
     ${RV_DEPS_OPENSSL_LIB_DIR}/${_ssl_lib_name}
 )
-
-# IF(RV_TARGET_IS_RHEL9 OR RV_TARGET_IS_RHEL8) SET(_crypto_lib_name ${CMAKE_SHARED_LIBRARY_PREFIX}crypto${CMAKE_SHARED_LIBRARY_SUFFIX}.1.1 ) SET(_crypto_lib
-# ${RV_DEPS_OPENSSL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}crypto${CMAKE_SHARED_LIBRARY_SUFFIX}.1.1 ) SET(_ssl_lib_name
-# ${CMAKE_SHARED_LIBRARY_PREFIX}ssl${CMAKE_SHARED_LIBRARY_SUFFIX}.1.1 ) SET(_ssl_lib
-# ${RV_DEPS_OPENSSL_LIB_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}ssl${CMAKE_SHARED_LIBRARY_SUFFIX}.1.1 ) ENDIF()
 
 EXTERNALPROJECT_ADD(
   ${_target}
@@ -166,11 +161,9 @@ IF(RV_TARGET_WINDOWS)
     ${_target}-stage-target ALL
     DEPENDS ${RV_STAGE_BIN_DIR}/${_crypto_lib_name} ${RV_STAGE_BIN_DIR}/${_ssl_lib_name}
   )
-ELSEIF(RV_TARGET_IS_RHEL8)
+ELSEIF(RV_TARGET_RHEL8)
   # Blank target on RHEL8 Linux to avoid copying RV's OpenSSL files.
-  ADD_CUSTOM_TARGET(
-    ${_target}-stage-target ALL
-  )
+  ADD_CUSTOM_TARGET(${_target}-stage-target ALL)
 ELSE()
   ADD_CUSTOM_COMMAND(
     COMMENT "Installing ${_target}'s libs into ${RV_STAGE_LIB_DIR}"

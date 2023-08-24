@@ -107,7 +107,7 @@ Bundle::getEnvVar(const EnvVar& name, const std::string& defaultValue)
 Bundle::Path
 Bundle::userHome()
 {
-#if defined(PLATFORM_APPLE_MACH_BSD) || defined(PLATFORM_LINUX)
+#if defined(PLATFORM_DARWIN) || defined(PLATFORM_LINUX)
     return getEnvVar("HOME", "/");
 #endif
 

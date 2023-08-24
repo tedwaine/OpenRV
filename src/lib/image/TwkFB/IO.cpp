@@ -335,7 +335,7 @@ GenericIO::getPluginFileList(const string& pathVar)
     return findInPath(".*\\.dll", pluginPath);
 #endif
 
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
     return findInPath(".*\\.dylib", pluginPath);
 #endif
 }

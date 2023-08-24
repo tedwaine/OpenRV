@@ -322,9 +322,6 @@ class Thread
 
     void		setProcess(Process*p) { _process=p; }
 
-    void*               threadState();
-    size_t              threadStateSize();
-
   private:
     Process*		_process;
     const Node*		_rootNode;
@@ -343,7 +340,6 @@ class Thread
     StackPointer	_bottomOfStack;
     bool		_applicationThread;
     bool                _suspended;
-    size_t*             _threadState;
     const Node*         _continuation;
 
     pthread_mutex_t	_controlMutex;

@@ -15,8 +15,8 @@
 #define TWK_USE_NEDMALLOC
 #endif
 
-#if defined(PLATFORM_APPLE_MACH_BSD)
-// DARWIN, IOS, IOS_SIMULATOR all declare PLATFORM_APPLE_MACH_BSD
+#if defined(PLATFORM_DARWIN)
+// DARWIN, IOS, IOS_SIMULATOR all declare PLATFORM_DARWIN
 #define TWK_USE_SYSTEM_ALLOC
 #endif
 
@@ -45,7 +45,7 @@
         #define TWK_ALLOCATE_PAGE_ALIGNED(T) ((T*)memalign(4096, sizeof(T)))
         #define TWK_ALLOCATE_ARRAY_PAGE_ALIGNED(T,n) ((T*)memalign(4096, sizeof(T)*n))
     #endif
-    #if defined(PLATFORM_APPLE_MACH_BSD)
+    #if defined(PLATFORM_DARWIN)
         #define TWK_ALLOCATE_PAGE_ALIGNED(T) ((T*)valloc(sizeof(T)))
         #define TWK_ALLOCATE_ARRAY_PAGE_ALIGNED(T,n) ((T*)valloc(sizeof(T)*n))
     #endif

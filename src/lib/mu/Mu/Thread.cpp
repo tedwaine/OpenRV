@@ -25,18 +25,7 @@
 #define MU_GC_PTR void*
 
 #ifdef PLATFORM_DARWIN
-#include <mach/thread_act.h>
 #include <mach/thread_status.h>
-#ifdef ARCH_PPC32
-#define darwin_thread_state ppc_thread_state
-#define DARWIN_THREAD_STATE_COUNT PPC_THREAD_STATE_COUNT
-#define DARWIN_THREAD_STATE PPC_THREAD_STATE
-#endif
-#if defined(ARCH_IA32) || defined(ARCH_IA32_64)
-#define darwin_thread_state i386_thread_state
-#define DARWIN_THREAD_STATE_COUNT i386_THREAD_STATE_COUNT
-#define DARWIN_THREAD_STATE i386_THREAD_STATE
-#endif
 #endif
 
 #ifdef PLATFORM_LINUX
@@ -48,8 +37,8 @@ using namespace std;
 
 #define STACK_CAPACTIY 4096
 
-Thread::Thread(Process* p, bool appthread) : 
-    _process(p), 
+Thread::Thread(Process* p, bool appthread) :
+    _process(p),
     _rootNode(0),
     _alive(true),
     _suspended(false),
@@ -63,19 +52,10 @@ Thread::Thread(Process* p, bool appthread) :
     _varyingMaskSense(true),
     _continuation(0),
     _applicationThread(appthread),
-    _returnValueType(0),
-    _threadState(0)
+    _returnValueType(0)
 {
     GarbageCollector::init();
     _stack.reserve(_stackCapacity);
-
-#ifdef PLATFORM_DARWIN
-    _threadState = new size_t[sizeof(DARWIN_THREAD_STATE)];
-#endif
-
-#ifdef PLATFORM_LINUX
-    _threadState = (size_t*)(new ucontext_t);
-#endif
 
     if (isApplicationThread())
     {
@@ -93,7 +73,7 @@ Thread::Thread(Process* p, bool appthread) :
         pthread_attr_getstacksize(&_threadAttrs, &stacksize);
         pthread_attr_setstacksize(&_threadAttrs, stacksize * 4);
 
-        if (int err = pthread_create(&_id, &_threadAttrs, 
+        if (int err = pthread_create(&_id, &_threadAttrs,
                                      &Thread::trampoline, this))
         {
             cerr << "Error: trying to create thread: "
@@ -105,7 +85,7 @@ Thread::Thread(Process* p, bool appthread) :
 
 Thread::~Thread()
 {
-    if (!isApplicationThread()) 
+    if (!isApplicationThread())
     {
         pthread_mutex_destroy(&_controlMutex);
         pthread_cond_destroy(&_controlCond);
@@ -116,14 +96,6 @@ Thread::~Thread()
 
     _process->removeThread(this);
     _process = 0;
-
-#ifdef PLATFORM_DARWIN
-    delete [] _threadState;
-#endif
-
-#ifdef PLATFORM_LINUX
-    delete _threadState;
-#endif
 }
 
 void*
@@ -139,7 +111,7 @@ Thread::go()
 {
     void* bottomOfStack = (void*)0xf0000001;
     void** bsaddr = reinterpret_cast<void**>(&bottomOfStack);
-    
+
     //
     //  The garbage collector has to be completely paranoid.  If this
     //  call address is higher in memory (smaller stack size) adjust
@@ -266,7 +238,7 @@ Thread::run(const Node *node, bool wait)
 //             throw ThreadMismatchException();
 //         }
 
-	if (_rootNode) 
+	if (_rootNode)
 	{
 	    _id = pthread_self();
 	    go();
@@ -292,7 +264,7 @@ Thread::waitWhileRunning()
     }
 }
 
-const Value         
+const Value
 Thread::callMethodByName(const char* funcName,
                          Function::ArgumentVector& args,
                          bool returnArguments)
@@ -425,7 +397,7 @@ Thread::suspend()
 
 #if 0
 #ifdef PLATFORM_DARWIN
-        
+
         if (thread_suspend(pthread_mach_thread_np(_id)) != KERN_SUCCESS)
         {
             cerr << "Thread::suspend(): thread_suspend() failed" << endl;
@@ -454,48 +426,6 @@ Thread::resume()
 #endif
 
     }
-}
-
-void*
-Thread::threadState()
-{
-#ifdef PLATFORM_DARWIN
-    if (_alive)
-    {
-        mach_msg_type_number_t thread_state_count = DARWIN_THREAD_STATE_COUNT;
-        kern_return_t krc;
-        if ((krc = thread_get_state(pthread_mach_thread_np(_id), // <-- can't use self here
-                                    DARWIN_THREAD_STATE,
-                                    (natural_t*)_threadState, 
-                                    &thread_state_count)) != KERN_SUCCESS)
-        {
-            return _threadState;
-        }
-        else
-        {
-            cerr << "Thread::threadState(): error obtaining thread state" << endl;
-        }
-    }
-#endif
-
-    return 0;
-}
-
-size_t
-Thread::threadStateSize()
-{
-#if 0
-#ifdef PLATFORM_DARWIN
-    return sizeof(darwin_thread_state);
-#endif
-
-#ifdef PLATFORM_LINUX
-    return sizeof(ucontext);
-#endif
-
-#endif
-	/* AJG - baaaaad ! */
-	return sizeof(int);
 }
 
 void

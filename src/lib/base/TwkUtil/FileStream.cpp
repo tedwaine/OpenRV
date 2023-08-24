@@ -34,7 +34,7 @@
 #include <string.h>
 #include <algorithm>
 
-#if defined(PLATFORM_APPLE_MACH_BSD)
+#if defined(PLATFORM_DARWIN)
 //
 //  Darwin doesn't have O_DIRECT or posix_fadvise (or any fadvise) so
 //  we'll just make those no-ops to keep the code simple.

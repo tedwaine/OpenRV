@@ -18,7 +18,7 @@
 #include <sys/time.h>
 #endif
 
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
 #include <sys/time.h>
 #endif
 

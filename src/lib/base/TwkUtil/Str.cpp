@@ -39,7 +39,7 @@ string uc( string str )
 {
     string uc_str = str;
     string::iterator i = uc_str.begin();
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
     transform( uc_str.begin(), uc_str.end(), i, __toupper );
 #else
     transform( uc_str.begin(), uc_str.end(), i, upit );
@@ -51,7 +51,7 @@ string lc( string str )
 {
     string lc_str = str;
     string::iterator i = lc_str.begin();
-#ifdef PLATFORM_APPLE_MACH_BSD
+#ifdef PLATFORM_DARWIN
     transform( lc_str.begin(), lc_str.end(), i, __tolower );
 #else
     transform( lc_str.begin(), lc_str.end(), i, lowit );

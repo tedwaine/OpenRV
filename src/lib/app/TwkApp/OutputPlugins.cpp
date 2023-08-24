@@ -34,7 +34,7 @@ namespace
             return TwkUtil::findInPath(".*\\.dll", pluginPath);
         #endif
 
-        #ifdef PLATFORM_APPLE_MACH_BSD
+        #ifdef PLATFORM_DARWIN
             return TwkUtil::findInPath(".*\\.dylib", pluginPath);
         #endif
     }
