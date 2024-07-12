@@ -37,7 +37,6 @@ import os
 import opentimelineio as otio
 from contextlib import contextmanager
 
-
 @contextmanager
 def set_context(context, **kwargs):
     if context:
@@ -293,7 +292,7 @@ def _get_global_transform(tl):
     # that can contain all clips
     def find_display_bounds(tl):
         display_bounds = None
-        for clip in tl.clip_if():
+        for clip in tl.find_clips():
             try:
                 bounds = clip.media_reference.available_image_bounds
                 if bounds:

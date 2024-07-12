@@ -49,6 +49,11 @@ class SyncReviewMarshal(MinorMode):
                     "before-clear-session",
                     self.send_clear_session,
                     "Send clear sync review payload",
+                ),
+                (
+                    "frame-changed",
+                    self.send_frame_changed,
+                    "Turn the playack settings into a sync review payload",
                 )
             ],
             None,
@@ -300,6 +305,23 @@ class SyncReviewMarshal(MinorMode):
             },
         )
 
+    @staticmethod
+    def send_frame_changed(event):
+        """
+        Sends a synced review message that frame has changed when
+        not playing
+        """
+        event.reject()
+
+        if commands.isPlaying():
+            return
+
+        if SyncReviewMarshal.updating_playbacksettings:
+            return
+
+        SyncReviewMarshal.marshal_playback_settings(
+            playing=commands.isPlaying(), current_time=SyncReviewMarshal.get_current_otio_time()
+        )    
 
 _mode = None
 
