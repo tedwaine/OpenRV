@@ -335,8 +335,7 @@ namespace Rv
         int t = y + h;
 
         // are the extents of the read region out of bounds?
-        if (x < 0 || y < 0 || r > width() * devicePixelRatio()
-            || t > height() * devicePixelRatio())
+        if (x < 0 || y < 0 || r > width() || t > height())
             return false;
 
         return true;
@@ -866,11 +865,6 @@ namespace Rv
         }
 
         return false;
-    }
-
-    float GLView::devicePixelRatio() const
-    {
-        return videoDevice() ? videoDevice()->devicePixelRatio() : 1.0f;
     }
 
 } // namespace Rv

@@ -327,6 +327,8 @@ namespace Rv
         int loadCount();
         int loadTotal();
 
+        void updateAnnotationsUI();
+
         //
         //  Override
         //
@@ -385,8 +387,6 @@ namespace Rv
                                          int newFastAddSourceEnabled);
         void onGraphMediaSetEmpty();
         void onGraphNodeWillRemove(IPCore::IPNode* node);
-
-        void updateAnnotationsUI();
 
     private:
         UINameCache m_uiNameCache;

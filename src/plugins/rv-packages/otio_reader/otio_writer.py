@@ -84,6 +84,34 @@ def write_otio_file(root_node_name, file_path):
     otio.adapters.write_to_file(timeline, file_path)
 
 
+def write_otio_string(root_node_name):
+    """
+    Create an OTIO Timeline starting from the supplied RV node and dumps it to a string
+    :param root_node_name: `str`
+    """
+
+    timeline = otio.schema.Timeline()
+
+    otio_root = create_otio_from_rv_node(root_node_name, timeline=timeline)
+    if not otio_root:
+        return "{}"
+
+    if commands.nodeType(root_node_name) == "RVStackGroup":
+        # check if the OTIO import saved any timeline properties to the stack
+        timeline.metadata.update(
+            get_node_otio_metadata(root_node_name, "timeline_metadata")
+        )
+        name_prop = "{}.otio.timeline_name".format(root_node_name)
+        if commands.propertyExists(name_prop):
+            timeline.name = commands.getStringProperty(name_prop)[0]
+
+        timeline.tracks = otio_root
+    else:
+        timeline.tracks[:] = [otio_root]
+
+    return otio.adapters.write_to_string(timeline)
+
+
 def _run_hook(hook_name, optional=True, *args, **kwargs):
     try:
         return otio.hooks.run(hook_name, kwargs.get("timeline"), kwargs)

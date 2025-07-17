@@ -139,23 +139,21 @@ class: MotionScope : Widget
     method: renderLocations (Locations; Event event)
     {
         let d       = event.domain(),
-            isRenderEvent       = event.name() == "render",
-            devicePixelRatio    = (if isRenderEvent then devicePixelRatio() else 1.0),
-            tbounds             = gltext.bounds("||||"),
-            audioH              = float(_settings.audioHeight) * devicePixelRatio,
-            tOff                = (if (_timeline._active && _settings.drawAtTopOfView == _timeline._settings.drawAtTopOfView) then _timeline._h else 0) * devicePixelRatio,
-            t                   = floor((5 + 8) * devicePixelRatio + tbounds[3] + 0.5 + max(audioH, 8 * devicePixelRatio));
+            tbounds = gltext.bounds("||||"),
+            audioH  = _settings.audioHeight,
+            tOff    = if (_timeline._active && _settings.drawAtTopOfView == _timeline._settings.drawAtTopOfView) then _timeline._h else 0,
+            t       = floor(5 + 8 + tbounds[3] + 0.5 + max(audioH,8));
 
         return Locations(d,
-                         d.x,                   // window width
-                         d.y,                   // window height
-                         8*devicePixelRatio,    // timeline height
-                         tbounds,               // text bounds
-                         30*devicePixelRatio,   // horizontal margin
-                         30*devicePixelRatio,   // vertical margin
+                         d.x,       // window width
+                         d.y,       // window height
+                         8,         // timeline height
+                         tbounds,   // text bounds
+                         30,        // horizontal margin
+                         30,        // vertical margin
                          0,
-                         5*devicePixelRatio,    // bottom  margin
-                         8*devicePixelRatio,    // top margin
+                         5,         // bottom  margin
+                         8,         // top margin
                          tOff,
                          t,
                          if _settings.drawAtTopOfView then floor(d.y - t - tOff) else tOff);
@@ -327,25 +325,20 @@ class: MotionScope : Widget
     {
         deb ("setFrameOrNudge");
         let x0 = _X0,
-            x1 = _X1,
-            devicePixelRatio = devicePixelRatio();
-
-        // Note: x and y are in device pixels (mouse pointers), so we may need to scale them
-        x = x * devicePixelRatio;
-        y = y * devicePixelRatio;
+            x1 = _X1;
 
         if (x > x0 && x < x1) setFrame(f); 
         else
         {
             deb ("x %s y %s _Y0 %s _nudgeY %s" % (x, y, _Y0, _nudgeY));
-            if (y > _Y0 + _nudgeY - 8*devicePixelRatio && y < _Y0 + _nudgeY + 8*devicePixelRatio)
+            if (y > _Y0 + _nudgeY - 8 && y < _Y0 + _nudgeY + 8)
             {
                 let p = isPlaying();
 
-                if      (x < 18*devicePixelRatio)      setInPoint(inPoint()-1);
-                else if (x < 30*devicePixelRatio)      setInPoint(inPoint()+1);
-                if      (x > _W - 18*devicePixelRatio) setOutPoint(outPoint()+1);
-                else if (x > _W - 30*devicePixelRatio) setOutPoint(outPoint()-1);
+                if      (x < 18)      setInPoint(inPoint()-1);
+                else if (x < 30)      setInPoint(inPoint()+1);
+                if      (x > _W - 18) setOutPoint(outPoint()+1);
+                else if (x > _W - 30) setOutPoint(outPoint()-1);
 
                 if (p != isPlaying()) togglePlay();
             }
@@ -938,24 +931,23 @@ class: MotionScope : Widget
     {
         deb ("MotionScope layout()");
         State state = data();
-        let devicePixelRatio = devicePixelRatio();
-        gltext.size(state.config.msFrameTextSize * devicePixelRatio);
+        gltext.size(state.config.msFrameTextSize);
 
         let d   = event.domain(),
             f   = frame(),
             s   = _frameFunc(f),
             sb  = gltext.bounds(s),             // size of frame string
             mxb = gltext.bounds("||||"),
-            vm0 =  if (_settings.drawAtTopOfView) then 5*devicePixelRatio else 5*devicePixelRatio,  // vertical margin
-            vm1 = 8*devicePixelRatio,
-            tlh = 8*devicePixelRatio,           // timeline height
-            t   = floor (vm0 + vm1 + mxb[3] + 0.5 + max(_settings.audioHeight*devicePixelRatio,tlh)),
-            tOff = (if (_timeline._active && _settings.drawAtTopOfView == _timeline._settings.drawAtTopOfView) then _timeline._h else 0)*devicePixelRatio,
+            vm0 =  if (_settings.drawAtTopOfView) then 5 else 5,  // vertical margin
+            vm1 = 8,
+            tlh = 8,                            // timeline height
+            t   = floor (vm0 + vm1 + mxb[3] + 0.5 + max(_settings.audioHeight,tlh)),
+            tOff = if (_timeline._active && _settings.drawAtTopOfView == _timeline._settings.drawAtTopOfView) then _timeline._h else 0,
             _Y0 = if (_settings.drawAtTopOfView) then d.y - t - tOff else tOff;
 
         deb ("layout: tOff %s _Y0 %s t %s d.y %s\n" % (tOff, _Y0, t, d.y));
 
-        updateBounds(vec2f(0,_Y0)/devicePixelRatio, vec2f(d.x,_Y0+t)/devicePixelRatio);
+        updateBounds(vec2f(0,_Y0), vec2f(d.x,_Y0+t));
         event.reject();
     }
 
@@ -985,8 +977,7 @@ class: MotionScope : Widget
         }
 
         State state = data();
-        let devicePixelRatio = devicePixelRatio();
-        gltext.size(state.config.msFrameTextSize * devicePixelRatio);
+        gltext.size(state.config.msFrameTextSize);
 
         if (_settings.audioHeight != 0)
         {
@@ -1008,7 +999,7 @@ class: MotionScope : Widget
         let f   = frame(),
             s   = _frameFunc(f),
             sb  = gltext.bounds(s),             // size of frame string
-            audioH = float(_settings.audioHeight) * devicePixelRatio,
+            audioH = _settings.audioHeight,
             _Y0 = Y,
             Ybot = _Y0 + vm0,
             Ytop = Ybot + max(audioH,tlh);
@@ -1051,32 +1042,29 @@ class: MotionScope : Widget
         //  events will be selected inside this bbox
         //
 
-        if (event.name() == "render") 
-        {
-            updateBounds(vec2f(0,_Y0)/devicePixelRatio, vec2f(d.x,_Y0+t)/devicePixelRatio);
-        }
-        else
-        //
-        //  OK this is a mess.  The problem is that the widget class still
-        //  thinks it knows w/h/x/y for the widget window, but in fact it
-        //  doesn't since there may be two such windows, one on controller and
-        //  one on pres device.  In addition the moscope is special since it
-        //  has to know how to "stack" with the timeline if they are both
-        //  displayed at top or bottom.
-        //  
-        //  Really the way the margins are "shared" should be re-done, but
-        //  don't have time at the mo.
-        //
-        {
-            let m = margins(),
-                marginVal = if (whichMargin() == 2) then /*top*/ d.y-_Y0 else /*bottom*/ _Y0+t;
-                
-            if (_settings.drawInMargin && m[whichMargin()] < marginVal)
-            {
-            m[whichMargin()] = marginVal;
-            setMargins (m);
-            }
-        }
+        if (event.name() == "render") updateBounds(vec2f(0,_Y0), vec2f(d.x,_Y0+t));
+	else
+	//
+	//  OK this is a mess.  The problem is that the widget class still
+	//  thinks it knows w/h/x/y for the widget window, but in fact it
+	//  doesn't since there may be two such windows, one on controller and
+	//  one on pres device.  In addition the moscope is special since it
+	//  has to know how to "stack" with the timeline if they are both
+	//  displayed at top or bottom.
+	//  
+	//  Really the way the margins are "shared" should be re-done, but
+	//  don't have time at the mo.
+	//
+	{
+	    let m = margins(),
+	        marginVal = if (whichMargin() == 2) then /*top*/ d.y-_Y0 else /*bottom*/ _Y0+t;
+		    
+	    if (_settings.drawInMargin && m[whichMargin()] < marginVal)
+	    {
+		m[whichMargin()] = marginVal;
+		setMargins (m);
+	    }
+	}
 
         \: motionScopeQuad (void; Color color, int x1, int x2, int thinnerBy = 0)
         {
@@ -1280,7 +1268,7 @@ class: MotionScope : Widget
             //glEnable(GL_POINT_SMOOTH);
             //glEnable(GL_LINE_SMOOTH);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            glLineWidth(1.5 * devicePixelRatio);
+            glLineWidth(1.5);
 
             //
             //  In / Out points
@@ -1289,7 +1277,7 @@ class: MotionScope : Widget
             //  Always show in/out in moscope
 
                 gltext.color(fg);
-                gltext.size(config.tlBoundsTextSize * devicePixelRatio);
+                gltext.size(config.tlBoundsTextSize);
 
                 let sin  = _frameFunc(fi),
                     sout = _frameFunc(fo),
@@ -1312,7 +1300,7 @@ class: MotionScope : Widget
                                sout);
                 }
 
-                gltext.size(config.msFrameTextSize * devicePixelRatio);
+                gltext.size(config.msFrameTextSize);
 
 
             //
@@ -1322,7 +1310,7 @@ class: MotionScope : Widget
             let mfs = markedFrames();
             glColor(config.tlMarkedColor);
 
-            glLineWidth(1.0 * devicePixelRatio);
+            glLineWidth(1.0);
             glBegin(GL_LINES);
 
             for_each (mf; mfs)
@@ -1338,9 +1326,9 @@ class: MotionScope : Widget
             }
 
             glEnd();
-            glLineWidth(1.5 * devicePixelRatio);
+            glLineWidth(1.5);
 
-            glPointSize(3.2 * devicePixelRatio);
+            glPointSize(3.2);
             glBegin(GL_POINTS);
 
             for_each (mf; mfs)
@@ -1359,11 +1347,11 @@ class: MotionScope : Widget
         glColor(1.3*config.bgVCRButton);
 
         _nudgeY = if (audioH > 0) then ((2*vm0) + audioH)/2.0 else vm0 + 16;
-        draw(triangleGlyph, hm0 - 17 * devicePixelRatio, _Y0 + _nudgeY, 0,   8 * devicePixelRatio, false);
-        draw(triangleGlyph, hm0 - 6 * devicePixelRatio,  _Y0 + _nudgeY, 180, 8 * devicePixelRatio, false);
+        draw(triangleGlyph, hm0 - 17, _Y0 + _nudgeY, 0,   8, false);
+        draw(triangleGlyph, hm0 - 6,  _Y0 + _nudgeY, 180, 8, false);
 
-        draw(triangleGlyph, hm0 + _tlw + 6 * devicePixelRatio,  _Y0 + _nudgeY, 0,   8 * devicePixelRatio, false);
-        draw(triangleGlyph, hm0 + _tlw + 17 * devicePixelRatio, _Y0 + _nudgeY, 180, 8 * devicePixelRatio, false);
+        draw(triangleGlyph, hm0 + _tlw + 6,  _Y0 + _nudgeY, 0,   8, false);
+        draw(triangleGlyph, hm0 + _tlw + 17, _Y0 + _nudgeY, 180, 8, false);
 
         //
         //  Draw the phantom frame number and tick (colored if necessary)
@@ -1410,13 +1398,13 @@ class: MotionScope : Widget
             if (false)
             {
                 glColor(fg);
-                glLineWidth(1.0 * devicePixelRatio);
+                glLineWidth(1.0);
                 glBegin(GL_LINES);
                 glVertex(xframe-1, Ybot - 1 + (maxHeight-height)/2);
                 glVertex(xframe-1, Ybot + 1 + maxHeight - (maxHeight-height)/2);
                 glEnd();
                 glColor(bg);
-                glLineWidth(1.0 * devicePixelRatio);
+                glLineWidth(1.0);
                 glBegin(GL_LINES);
                 glVertex(xframe, Ybot - 1 + (maxHeight-height)/2);
                 glVertex(xframe, Ybot + 1 + maxHeight - (maxHeight-height)/2);
@@ -1426,7 +1414,7 @@ class: MotionScope : Widget
             if (true)
             {
                 glColor(.9,.6,.6,1);
-                glLineWidth(1.0 * devicePixelRatio);
+                glLineWidth(1.0);
                 glBegin(GL_LINES);
                 glVertex(myFrame, Ybot - 1 + (maxHeight-height)/2);
                 glVertex(myFrame, Ybot + 1 + maxHeight - (maxHeight-height)/2);
@@ -1438,7 +1426,7 @@ class: MotionScope : Widget
             else
             {
                 glColor(c);
-                glLineWidth(2.0 * devicePixelRatio);
+                glLineWidth(2.0);
                 glBegin(GL_LINES);
                 glVertex(xframe, Ybot - 1 + (maxHeight-height)/2);
                 glVertex(xframe, Ybot + 1 + maxHeight - (maxHeight-height)/2);
@@ -1510,7 +1498,7 @@ class: MotionScope : Widget
         //
 
         glColor(config.tlInOutCapsColor);
-        glLineWidth(2 * devicePixelRatio);
+        glLineWidth(2);
         glBegin(GL_LINES);
         glVertex(hm0 + ip * _tlw, Ybot - 1);
         glVertex(hm0 + ip * _tlw, Ybot + 1 + max(audioH,tlh));
@@ -1607,7 +1595,7 @@ class: MotionScope : Widget
             glColor(fcol);
             gltext.color(fcol);
 
-            glLineWidth(2.0 * devicePixelRatio);
+            glLineWidth(2.0);
             glBegin(GL_LINES);
             glVertex(xframe, sY - 1);
             glVertex(xframe, sYh - 2);
@@ -1658,7 +1646,7 @@ class: MotionScope : Widget
                 glEnd();
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-                glLineWidth(1.0 * devicePixelRatio);
+                glLineWidth(1.0);
                 glColor(fcol);
                 glBegin(GL_LINES);
                 glVertex(xframe1, sY - 1);
@@ -1667,7 +1655,7 @@ class: MotionScope : Widget
             }
         }
 
-        glLineWidth(1.5 * devicePixelRatio);
+        glLineWidth(1.5);
 
         //
         //  Draw the in/out info if needed

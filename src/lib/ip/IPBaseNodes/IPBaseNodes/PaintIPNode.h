@@ -27,14 +27,6 @@ namespace IPCore
     //          string text
     //
 
-    struct PaintEffects
-    {
-        int hold = 0;
-        int ghost = 0;
-        int ghostBefore = 5;
-        int ghostAfter = 5;
-    };
-
     class PaintIPNode : public IPNode
     {
     public:
@@ -54,6 +46,10 @@ namespace IPCore
 
             int startFrame{};
             int duration{};
+            int ghost{};
+            int hold{};
+            int ghostAfter{};
+            int ghostBefore{};
             int eye{-1};
 
             bool ghostOn{};
@@ -103,7 +99,6 @@ namespace IPCore
         void compilePenComponent(Component*);
         void compileTextComponent(Component*);
         void compileFrame(Component*);
-        void setPaintEffects();
 
     private:
         PenMap m_penStrokes;
@@ -114,7 +109,6 @@ namespace IPCore
         FrameMap m_frameMap;
         Component* m_tag;
         std::mutex m_commandsMutex;
-        PaintEffects m_paintEffects;
     };
 
 } // namespace IPCore

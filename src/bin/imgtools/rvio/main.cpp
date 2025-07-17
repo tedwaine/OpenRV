@@ -36,7 +36,7 @@
 #include <IPBaseNodes/SourceIPNode.h>
 #include <IPCore/GroupIPNode.h>
 #include <IPCore/OutputGroupIPNode.h>
-#include <IPCore/SessionIPNode.h>
+#include <IPBaseNodes/PaintIPNode.h>
 #ifdef RVIO_HW
 #include <MovieRV_FBO/MovieRV_FBO.h>
 #else
@@ -130,13 +130,33 @@ namespace
 {
     void disableGhostOnAnnotations(IPCore::IPGraph& graph)
     {
-        auto* sessionNode = graph.sessionNode();
-        if (sessionNode != nullptr)
+        const auto& nodes = graph.nodeMap();
+
+        for (const auto& nodeInfo : nodes)
         {
-            sessionNode->setProperty<TwkContainer::IntProperty>(
-                "paintEffects.ghost", 0);
-            sessionNode->setProperty<TwkContainer::IntProperty>(
-                "paintEffects.hold", 0);
+            const auto& node = nodeInfo.second;
+            auto* paintNode = dynamic_cast<IPCore::PaintIPNode*>(node);
+
+            if (paintNode != nullptr)
+            {
+                for (const auto& component : paintNode->components())
+                {
+                    if (std::regex_match(component->name(),
+                                         std::regex("(pen:.*|text:.*)")))
+                    {
+                        auto* property =
+                            component->property<TwkContainer::IntProperty>(
+                                "ghost");
+
+                        if (property != nullptr)
+                        {
+                            node->propertyWillChange(property);
+                            paintNode->setProperty(property, 0);
+                            node->propertyChanged(property);
+                        }
+                    }
+                }
+            }
         }
     }
 } // namespace

@@ -526,8 +526,7 @@ class: Widget : MinorMode
 
     method: requiredMarginValue (float; )
     {
-        let vs = viewSize(),
-            devicePixelRatio = devicePixelRatio();
+        let vs = viewSize();
 
         if (_whichMargin == -1)
         //
@@ -541,28 +540,28 @@ class: Widget : MinorMode
         //  Left margin
         //
         {
-            return (_x + _w)*devicePixelRatio;
+            return _x + _w;
         }
         else if (_whichMargin == 1)
         // 
         //  Right margin
         //
         {
-            return vs.x - _x*devicePixelRatio;
+            return vs.x - _x;
         }
         else if (_whichMargin == 2)
         // 
         //  Top margin
         //
         {
-            return vs.y - _y*devicePixelRatio;
+            return vs.y - _y;
         }
         else if (_whichMargin == 3)
         // 
         //  Bottom margin
         //
         {
-            return (_y + _h)*devicePixelRatio;
+            return _y + _h;
         }
 
         return 0.0;

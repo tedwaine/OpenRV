@@ -5,7 +5,6 @@
 //
 #include <IPBaseNodes/PaintIPNode.h>
 #include <IPCore/PaintCommand.h>
-#include <IPCore/SessionIPNode.h>
 #include <IPCore/Exception.h>
 #include <IPCore/IPGraph.h>
 #include <TwkGLText/TwkGLText.h>
@@ -109,7 +108,7 @@ namespace
     void addBeforeCommands(PaintIPNode::LocalCommands* allCommands,
                            PaintIPNode::LocalCommands* currentFrameCommands,
                            const PerFramePaintCommands& beforeCommands,
-                           const PaintEffects& paintEffects, const int frame)
+                           const int frame)
     {
         int levelIndex = 1;
         bool isHoldedCommandsInFirstLevel = false;
@@ -128,8 +127,7 @@ namespace
             {
                 // Keep held annotations on the current frame only if there is
                 // no new annotation to add
-                if (levelIndex == 1 && paintEffects.hold != 0
-                    && !isNewAnnotation)
+                if (levelIndex == 1 && command->hold != 0 && !isNewAnnotation)
                 {
                     isHoldedCommandsInFirstLevel = true;
                     command->ghostOn = true;
@@ -148,8 +146,7 @@ namespace
                     currentFrameCommands->push_back(command);
                 }
 
-                if (paintEffects.ghost != 0
-                    && paintEffects.ghostBefore >= ghostLevel)
+                if (command->ghost != 0 && command->ghostBefore >= ghostLevel)
                 {
                     command->ghostOn = true;
                     command->ghostColor = PaintIPNode::Color(
@@ -166,7 +163,7 @@ namespace
 
     void addAfterCommands(PaintIPNode::LocalCommands* allCommands,
                           const PerFramePaintCommands& afterCommands,
-                          const PaintEffects& paintEffects, const int frame)
+                          const int frame)
     {
         int levelIndex = 1;
 
@@ -174,8 +171,7 @@ namespace
         {
             for (auto* command : afterCommand.second)
             {
-                if (paintEffects.ghost != 0
-                    && paintEffects.ghostAfter >= levelIndex)
+                if (command->ghost != 0 && command->ghostAfter >= levelIndex)
                 {
                     command->ghostOn = true;
                     command->ghostColor = PaintIPNode::Color(
@@ -203,8 +199,7 @@ namespace
 
     PaintIPNode::LocalCommands
     generateVisibleCommands(const PaintIPNode::LocalCommands& commands,
-                            const int frame, const size_t eye,
-                            const PaintEffects& paintEffects)
+                            const int frame, const size_t eye)
     {
         PaintIPNode::LocalCommands
             allCommands; // visible commands, including hold and ghost
@@ -217,8 +212,8 @@ namespace
             separateCommandsByFrameGroup(commands, frame, eye);
 
         addBeforeCommands(&allCommands, &currentFrameCommands, beforeCommands,
-                          paintEffects, frame);
-        addAfterCommands(&allCommands, afterCommands, paintEffects, frame);
+                          frame);
+        addAfterCommands(&allCommands, afterCommands, frame);
         addVisibleCommands(&allCommands, currentFrameCommands);
 
         return allCommands;
@@ -281,6 +276,11 @@ namespace IPCore
 
         const IntProperty* startFrameP = c->property<IntProperty>("startFrame");
         const IntProperty* durationP = c->property<IntProperty>("duration");
+        const IntProperty* holdP = c->property<IntProperty>("hold");
+        const IntProperty* ghostP = c->property<IntProperty>("ghost");
+        const IntProperty* ghostBeforeP =
+            c->property<IntProperty>("ghostBefore");
+        const IntProperty* ghostAfterP = c->property<IntProperty>("ghostAfter");
 
         const float width = widthP && widthP->size() ? widthP->front() : 0.01f;
         const Vec4f color = colorP && colorP->size()
@@ -309,6 +309,18 @@ namespace IPCore
         const int duration = (durationP != nullptr && durationP->size() != 0)
                                  ? durationP->front()
                                  : 0;
+        const int hold =
+            (holdP != nullptr && holdP->size() != 0) ? holdP->front() : 0;
+        const int ghost =
+            (ghostP != nullptr && ghostP->size() != 0) ? ghostP->front() : 0;
+        const int ghostBefore =
+            (ghostBeforeP != nullptr && ghostBeforeP->size() != 0)
+                ? ghostBeforeP->front()
+                : 0;
+        const int ghostAfter =
+            (ghostAfterP != nullptr && ghostAfterP->size() != 0)
+                ? ghostAfterP->front()
+                : 0;
 
         p.width = width;
         p.color = color;
@@ -323,6 +335,10 @@ namespace IPCore
         p.eye = eye;
         p.startFrame = startFrame;
         p.duration = duration;
+        p.hold = hold;
+        p.ghost = ghost;
+        p.ghostBefore = ghostBefore;
+        p.ghostAfter = ghostAfter;
 
         if (widthP && pointsP && widthP->size() == pointsP->size()
             && widthP->size() > 1)
@@ -404,6 +420,18 @@ namespace IPCore
         const int duration = (durationP != nullptr && durationP->size() != 0)
                                  ? durationP->front()
                                  : 0;
+        const int hold =
+            (holdP != nullptr && holdP->size() != 0) ? holdP->front() : 0;
+        const int ghost =
+            (ghostP != nullptr && ghostP->size() != 0) ? ghostP->front() : 0;
+        const int ghostBefore =
+            (ghostBeforeP != nullptr && ghostBeforeP->size() != 0)
+                ? ghostBeforeP->front()
+                : 0;
+        const int ghostAfter =
+            (ghostAfterP != nullptr && ghostAfterP->size() != 0)
+                ? ghostAfterP->front()
+                : 0;
 
         p.ptsize = size * 100.0 * 100.0;
         p.scale = 1.0 / 80.0 / 10.0 * scale;
@@ -417,6 +445,10 @@ namespace IPCore
         p.eye = eye;
         p.startFrame = startFrame;
         p.duration = duration;
+        p.hold = hold;
+        p.ghost = ghost;
+        p.ghostBefore = ghostBefore;
+        p.ghostAfter = ghostAfter;
     }
 
     void PaintIPNode::compileFrame(Component* comp)
@@ -437,41 +469,6 @@ namespace IPCore
             {
                 fcomps.push_back(fc);
             }
-        }
-    }
-
-    void PaintIPNode::setPaintEffects()
-    {
-        IPNode* sessionNode = graph()->sessionNode();
-        if (sessionNode != nullptr)
-        {
-            const IntProperty* holdProperty =
-                sessionNode->property<IntProperty>("paintEffects", "hold");
-            const IntProperty* ghostProperty =
-                sessionNode->property<IntProperty>("paintEffects", "ghost");
-            const IntProperty* ghostBeforeProperty =
-                sessionNode->property<IntProperty>("paintEffects",
-                                                   "ghostBefore");
-            const IntProperty* ghostAfterProperty =
-                sessionNode->property<IntProperty>("paintEffects",
-                                                   "ghostAfter");
-
-            m_paintEffects.hold =
-                (holdProperty != nullptr && holdProperty->size() != 0)
-                    ? holdProperty->front()
-                    : 0;
-            m_paintEffects.ghost =
-                (ghostProperty != nullptr && ghostProperty->size() != 0)
-                    ? ghostProperty->front()
-                    : 0;
-            m_paintEffects.ghostBefore = (ghostBeforeProperty != nullptr
-                                          && ghostBeforeProperty->size() != 0)
-                                             ? ghostBeforeProperty->front()
-                                             : 0;
-            m_paintEffects.ghostAfter = (ghostAfterProperty != nullptr
-                                         && ghostAfterProperty->size() != 0)
-                                            ? ghostAfterProperty->front()
-                                            : 0;
         }
     }
 
@@ -732,10 +729,8 @@ namespace IPCore
                 }
             }
 
-            setPaintEffects();
-
-            LocalCommands visibleCommands = generateVisibleCommands(
-                frameCommands, frame, context.eye, m_paintEffects);
+            LocalCommands visibleCommands =
+                generateVisibleCommands(frameCommands, frame, context.eye);
 
             for (auto* visibleCommand : visibleCommands)
             {

@@ -252,18 +252,17 @@ class: ImageInfo : Widget
             bg = state.config.bgErr;
         }
 
-        let devicePixelRatio = devicePixelRatio();
-        gltext.size(state.config.infoTextSize*devicePixelRatio);
+        gltext.size(state.config.infoTextSize);
         setupProjection(domain.x, domain.y, event.domainVerticalFlip());
 
-        let margin  = state.config.bevelMargin*devicePixelRatio,
-            x       = _x*devicePixelRatio + margin,
-            y       = _y*devicePixelRatio + margin,
-            wrap    = if (_wrap) then 80*devicePixelRatio else 0,
+        let margin  = state.config.bevelMargin,
+            x       = _x + margin,
+            y       = _y + margin,
+            wrap    = if (_wrap) then 80 else 0,
             tbox    = drawNameValuePairs(expandNameValuePairs(attrs, wrap),
                                          fg, bg, x, y, margin)._0,
             emin    = vec2f(_x, _y),
-            emax    = emin + (tbox + vec2f(margin*2.0, 0.0))/devicePixelRatio;
+            emax    = emin + tbox + vec2f(margin*2.0, 0.0);
 
         if (_inCloseArea)
         {
@@ -377,7 +376,6 @@ class: InfoStrip : Widget
             w      = domain.x,
             h      = domain.y,
             pinfo  = state.pixelInfo,
-            devicePixelRatio = devicePixelRatio(),
             attrs  = sourceAttributes(if (pinfo neq nil && !pinfo.empty()) 
                                           then pinfo.front().name
                                           else nil);
@@ -391,7 +389,7 @@ class: InfoStrip : Widget
         //  Don't allow the widget to be dragged off the window or
         //  into the top/bottom margin.
         //
-        _y = max(min(_y, h/devicePixelRatio - 30 - margins()[2]), margins()[3]);
+        _y = max(min(_y, h - 30 - margins()[2]), margins()[3]);
 
         if (attrs eq nil)  return;
 
@@ -417,8 +415,8 @@ class: InfoStrip : Widget
 
         state.filestripX1 = 0;
 
-        let textSize = 20.0*devicePixelRatio;
-        if (_scaleWithResolution && devicePixelRatio==1.0)
+        int textSize = 20;
+        if (_scaleWithResolution)
         {
             int baseResolution = 1280;
             int fontSize = 20;
@@ -430,15 +428,15 @@ class: InfoStrip : Widget
         setupProjection(w, h, event.domainVerticalFlip());
 
         let b      = gltext.bounds(filename),
-            margin = state.config.bevelMargin*devicePixelRatio,
+            margin = state.config.bevelMargin,
             m2     = margin,
             md     = margin / 2,
             tw     = b[2],
             th     = b[3],
             x      = w - tw,
-            y      = _y*devicePixelRatio + md;
+            y      = _y + md;
 
-        state.filestripX1 = y + th + 5*devicePixelRatio;
+        state.filestripX1 = y + th + 5;
         glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glEnable(GL_BLEND);
@@ -451,8 +449,8 @@ class: InfoStrip : Widget
                                 fg, bg,
                                 circleGlyph, bg * .7);
 
-        updateBounds(vec2f(x - margin, y - md)/devicePixelRatio,
-                     vec2f(x + tw, y + th + md)/devicePixelRatio);
+        updateBounds(vec2f(x - margin, y - md),
+                        vec2f(x + tw, y + th + md));
 
         if (_inCloseArea)
         {
@@ -537,8 +535,7 @@ class: ProcessInfo : Widget
             return;
         }
 
-        let devicePixelRatio = devicePixelRatio();
-        gltext.size(state.config.infoTextSize*devicePixelRatio);
+        gltext.size(state.config.infoTextSize);
         setupProjection(domain.x, domain.y, event.domainVerticalFlip());
 
         (string,string)[] pairs;
@@ -546,9 +543,9 @@ class: ProcessInfo : Widget
         pairs.push_back((" ", "%s" % message));
         pairs.push_back((p._name, " "));
 
-        let margin  = state.config.bevelMargin*devicePixelRatio,
-            x       = _x*devicePixelRatio + margin,
-            y       = _y*devicePixelRatio + margin,
+        let margin  = state.config.bevelMargin,
+            x       = _x + margin,
+            y       = _y + margin,
             bgbar   = (fg + bg) / 4.0,
             fgbar   = (fg + bg) / 2.0,
             barsize = gltext.bounds("          ")[2] * 8,
@@ -566,7 +563,7 @@ class: ProcessInfo : Widget
             px   = x + nw + md,
             py   = y + th * 1 + fd + th/2,
             emin = vec2f(_x, _y),
-            emax = emin + (tbox + vec2f(margin*2.0, 0.0))/devicePixelRatio;
+            emax = emin + tbox + vec2f(margin*2.0, 0.0);
 
         let bwidth = barsize * pcent * .01;
 
@@ -604,10 +601,10 @@ class: ProcessInfo : Widget
         // touch memory space of the Buttons array, we just update its 
         // x/y/w/h/pid content, member-by-member, which still is not 
         // 100% ideal, but safe and harmless enough, and we won't crash.
-        _buttons[0]._x = (pcx + 4)/devicePixelRatio;
-        _buttons[0]._y = (pcy)/devicePixelRatio;
-        _buttons[0]._w = (rad * 2)/devicePixelRatio;
-        _buttons[0]._h = (rad * 2)/devicePixelRatio;
+        _buttons[0]._x = pcx + 4;
+        _buttons[0]._y = pcy;
+        _buttons[0]._w = rad * 2;
+        _buttons[0]._h = rad * 2;
         _buttons[0]._callback = killProcess(p,);
 
         gltext.writeAt(pcx + 3.0 * rad, pcy, "%-3.1f%%" % pcent);
@@ -1209,17 +1206,16 @@ class: SourceDetails : Widget
             bg = state.config.bgErr;
         }
 
-        let devicePixelRatio = devicePixelRatio();
-        gltext.size(state.config.infoTextSize*devicePixelRatio);
+        gltext.size(state.config.infoTextSize);
         setupProjection(domain.x, domain.y, event.domainVerticalFlip());
 
-        let margin  = state.config.bevelMargin*devicePixelRatio,
-            x       = _x*devicePixelRatio + margin,
-            y       = _y*devicePixelRatio + margin,
+        let margin  = state.config.bevelMargin,
+            x       = _x + margin,
+            y       = _y + margin,
             tbox    = drawNameValuePairs(expandNameValuePairs(details),
                                          fg, bg, x, y, margin)._0,
             emin    = vec2f(_x, _y),
-            emax    = emin + (tbox + vec2f(margin*2.0, 0.0))/devicePixelRatio;
+            emax    = emin + tbox + vec2f(margin*2.0, 0.0);
 
         if (_inCloseArea)
         {

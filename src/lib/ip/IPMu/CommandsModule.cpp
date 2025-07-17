@@ -1815,13 +1815,7 @@ namespace IPMu
         Vector2f inp = NODE_ARG(0, Vector2f);
         StringType::String* tagname = NODE_ARG_OBJECT(1, StringType::String);
         bool sourcesOnly = NODE_ARG(2, bool);
-
-        // Note that the viewport is already taking the devicePixelRatio into
-        // account (High DPI display) whereas the input coordinates are in pixel
-        // space, so we need to adjust the viewport accordingly.
-        Box2f vp = s->renderer()->viewport()
-                   / s->renderer()->currentDevice()->devicePixelRatio();
-
+        Box2f vp = s->renderer()->viewport();
         float x = (inp[0] - vp.min.x) / (vp.size().x - 1.0) * 2.0 - 1.0;
         float y = (inp[1] - vp.min.y) / (vp.size().y - 1.0) * 2.0 - 1.0;
         DynamicArray* array = new DynamicArray(atype, 1);

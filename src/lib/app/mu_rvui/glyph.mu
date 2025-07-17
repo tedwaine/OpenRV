@@ -524,13 +524,12 @@ operator: & (Glyph; Glyph a, Glyph b)
                     string[] descriptors)
 {
     let m  = margins(),
-        devicePixelRatio=devicePixelRatio(),
         bsize = (h - m[2] - m[3]) / descriptors.size(),
         inregion = -1;
 
     for_index (i; descriptors)
     {
-        gltext.size(20*devicePixelRatio);
+        gltext.size(20);
 
         let y0 = bsize * i + margin + m[3],
             x0 = m[0] + margin,
