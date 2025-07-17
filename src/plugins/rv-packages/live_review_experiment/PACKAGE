@@ -12,6 +12,11 @@ modes:
     load: immediate
   - file: message_queue_implementation.py
     load: immediate
+files:
+  - file: mq_consumer.py
+    location: SupportFiles/$PACKAGE
+  - file: mq_publisher.py
+    location: SupportFiles/$PACKAGE
 
 description: |
   <p>

@@ -1,6 +1,7 @@
 import os
 import platform
 import ssl
+import logging
 
 import pika
 from PySide6 import QtCore, QtWidgets
@@ -13,7 +14,8 @@ from rv.commands import (
     theTime,
 )
 from rv.rvtypes import MinorMode
-
+from mq_consumer import MQReconnectingConsumer
+from mq_publisher import MQPublisher
 
 class MessageQueueImplementation(MinorMode, QtCore.QObject):
     def __init__(self):
@@ -23,6 +25,7 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
         self.__pika_credentials = os.environ.get("RV_AMQP_CREDENTIALS", "")
         self.__pika_current_exchange = os.environ.get("RV_AMQP_DEFAULT_EXCHANGE", "")
         self.__pika_connection = None
+        self.__pika_pub_connection = None
         self.__pika_channel = None
         self.__pika_consumer_tag = None
         self.__pika_current_queue = None
@@ -36,6 +39,7 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
             self.local_bindings,
             self.menu,
         )
+
 
     def timerEvent(self, event):
         self.process_next_message()
@@ -64,7 +68,7 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
 
     @property
     def menu(self):
-        if not self.amqp_connected:
+        if not self.mq_consumer:
             return [
                 (
                     self.menu_name,
@@ -125,7 +129,7 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
 
     def send_payload_to_queue(self, event):
         if self.in_session:
-            self.send_message(event.contents())
+            self.mq_publisher.send_message(event.contents())
 
     #
     # Menu callbacks
@@ -142,12 +146,17 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
 
         if ok:
             self.mq_credentials = creds
-            self.connect_mq()
+            self.mq_consumer = MQReconnectingConsumer(self, self.review_uuid, creds)
+            self.mq_consumer.mq_message.connect(self.incoming_message)
+            self.mq_publisher = MQPublisher(self, self.review_uuid, creds)
+            
+
+    def incoming_message(self, body):
+        sendInternalEvent("sync-review-change-received", body)
 
     def create_review_session(self, session_name):
-        self.mq_exchange = session_name
-        self.create_channel()
-        self.declare_exchange()
+        self.mq_consumer.mq_connect(session_name)
+        self.mq_publisher.mq_connect(session_name)
 
     def create_review(self, event=None):
         sw = qtutils.sessionWindow()
@@ -157,14 +166,12 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
             "Review Session ID:",
             text=self.mq_exchange,
         )
-
         if ok:
             self.create_review_session(id)
 
     def join_review_session(self, session_name):
-        self.mq_exchange = session_name
-        self.create_channel()
-        self.declare_queue()
+        self.mq_consumer.mq_connect(session_name)
+        self.mq_publisher.mq_connect(session_name)
 
     def join_review(self, event=None):
         sw = qtutils.sessionWindow()
@@ -179,13 +186,10 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
             self.join_review_session(id)
 
     def leave_review(self, event=None):
-        self.close_channel()
-
-        self.mq_queue = None
-        self.mq_channel = None
+        pass
 
     def leave_review_server(self, event=None):
-        self.disconnect_mq()
+        pass
 
     #
     # Review Session properties
@@ -197,11 +201,11 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
 
     @property
     def amqp_connected(self):
-        return self.mq_connection != None
+        return self.mq_consumer != None
 
     @property
     def in_session(self):
-        return bool(self.mq_exchange) and bool(self.mq_queue)
+        return bool(self.mq_consumer) and self.mq_consumer.connected
 
     @property
     def mq_credentials(self):
@@ -212,13 +216,21 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
         self.__pika_credentials = value
 
     @property
-    def mq_connection(self):
+    def mq_consumer(self):
         return self.__pika_connection
 
-    @mq_connection.setter
-    def mq_connection(self, value):
+    @mq_consumer.setter
+    def mq_consumer(self, value):
         self.__pika_connection = value
         defineModeMenu(self.menu_name.replace(" ", ""), self.menu, True)
+
+    @property
+    def mq_publisher(self):
+        return self.__pika_pub_connection
+
+    @mq_publisher.setter
+    def mq_publisher(self, value):
+        self.__pika_pub_connection = value
 
     @property
     def mq_channel(self):
@@ -278,13 +290,13 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
 
         url_parameters.ssl_options = pika.SSLOptions(context=ssl_context)
 
-        self.mq_connection = pika.BlockingConnection(
+        self.mq_consumer = pika.BlockingConnection(
             parameters=url_parameters,
         )
 
     def create_channel(self):
         print("Creating a new channel")
-        self.mq_channel = self.mq_connection.channel()
+        self.mq_channel = self.mq_consumer.channel()
 
         print("Specifying the QoS for the channel")
         self.mq_channel.basic_qos(prefetch_count=0)
@@ -293,8 +305,8 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
         self.close_channel()
 
         print("Disconnecting")
-        self.mq_connection.close()
-        self.mq_connection = None
+        self.mq_consumer.close()
+        self.mq_consumer = None
 
         self.mq_queue = None
 
@@ -361,20 +373,6 @@ class MessageQueueImplementation(MinorMode, QtCore.QObject):
     #
     # Message management
     #
-
-    def send_message(self, message):
-        print(f"Sending message to {self.mq_exchange} (from {self.mq_queue})")
-
-        self.mq_channel.basic_publish(
-            exchange=self.mq_exchange,
-            routing_key="",
-            body=message.encode("utf-8"),
-            properties=pika.BasicProperties(
-                app_id=self.mq_queue,
-                content_type="application/json",
-                delivery_mode=1,
-            ),
-        )
 
     def start_consuming_queue(self):
         self.stop_consuming_queue()
