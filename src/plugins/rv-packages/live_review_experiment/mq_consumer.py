@@ -3,6 +3,7 @@ import functools
 import pika
 from pika.exchange_type import ExchangeType
 import json
+import time
 
 class MQConsumer(QtCore.QObject):
     """This is an example consumer that will handle unexpected interactions
@@ -20,6 +21,7 @@ class MQConsumer(QtCore.QObject):
     EXCHANGE_TYPE = ExchangeType.fanout
     message_signal = QtCore.Signal(str)
     connection_status = QtCore.Signal(bool, str)
+    console_output = QtCore.Signal(str)
 
     def __init__(self, parent, listener_uuid, ampq_uri, exchange):
         """Create a new instance of the consumer class, passing in the AMQP
@@ -52,7 +54,7 @@ class MQConsumer(QtCore.QObject):
         :rtype: pika.SelectConnection
 
         """
-        print(f'Connecting to ampq:{self._ampq_uri}')
+        self.console_output.emit(f'Connecting to ampq:{self._ampq_uri}')
         parameters = pika.URLParameters(self._ampq_uri)
         self._connection = pika.SelectConnection(
             parameters=parameters,
@@ -61,17 +63,17 @@ class MQConsumer(QtCore.QObject):
             on_close_callback=self.on_connection_closed)
 
     def close_connection(self):
-        print ("close_connection")
+        self.console_output.emit ("close_connection")
         self._consuming = False
         if self._connection.is_closing or self._connection.is_closed:
-            print('Connection is closing or already closed')
+            self.console_output.emit('Connection is closing or already closed')
         else:
-            print('Closing connection')
+            self.console_output.emit('Closing connection')
             self._connection.close()
         self.connection_status.emit(False, 'Connection closed by user')
 
     def on_connection_open(self, _unused_connection):
-        print ("on_connection_open")
+        self.console_output.emit ("on_connection_open")
 
         """This method is called by pika once the connection to RabbitMQ has
         been established. It passes the handle to the connection object in
@@ -80,7 +82,7 @@ class MQConsumer(QtCore.QObject):
         :param pika.SelectConnection _unused_connection: The connection
 
         """
-        print('Connection opened')
+        self.console_output.emit('Connection opened')
         self.open_channel()
 
     def on_connection_open_error(self, _unused_connection, err):
@@ -91,12 +93,12 @@ class MQConsumer(QtCore.QObject):
         :param Exception err: The error
 
         """
-        print(f'Connection open failed: {err}')
+        self.console_output.emit(f'Connection open failed: {err}')
         self.connection_status.emit(False, 'Connection open error: {} {}'.format(err, type(err)))
         self.reconnect()
 
     def on_connection_closed(self, _unused_connection, reason):
-        print ("on_connection_closed")
+        self.console_output.emit ("on_connection_closed")
         """This method is invoked by pika when the connection to RabbitMQ is
         closed unexpectedly. Since it is unexpected, we will reconnect to
         RabbitMQ if it disconnects.
@@ -110,7 +112,7 @@ class MQConsumer(QtCore.QObject):
         if self._closing:
             self._connection.ioloop.stop()
         else:
-            print(f'Connection closed, reconnect necessary: {reason}')
+            self.console_output.emit(f'Connection closed, reconnect necessary: {reason}')
             self.reconnect()
 
     def reconnect(self):
@@ -128,7 +130,7 @@ class MQConsumer(QtCore.QObject):
         on_channel_open callback will be invoked by pika.
 
         """
-        print('Creating a new channel')
+        self.console_output.emit('Creating a new channel')
         self._connection.channel(on_open_callback=self.on_channel_open)
 
     def on_channel_open(self, channel):
@@ -140,7 +142,7 @@ class MQConsumer(QtCore.QObject):
         :param pika.channel.Channel channel: The channel object
 
         """
-        print('Channel opened')
+        self.console_output.emit('Channel opened')
         self._channel = channel
         self.add_on_channel_close_callback()
         self.connection_status.emit(True, 'Channel opened')
@@ -151,7 +153,7 @@ class MQConsumer(QtCore.QObject):
         RabbitMQ unexpectedly closes the channel.
 
         """
-        print('Adding channel close callback')
+        self.console_output.emit('Adding channel close callback')
         self._channel.add_on_close_callback(self.on_channel_closed)
 
     def on_channel_closed(self, channel, reason):
@@ -165,7 +167,7 @@ class MQConsumer(QtCore.QObject):
         :param Exception reason: why the channel was closed
 
         """
-        print('Channel %i was closed: %s', channel, reason)
+        self.console_output.emit(f'Channel {channel} was closed: {reason}')
         self.close_connection()
 
     def setup_exchange(self):
@@ -173,7 +175,7 @@ class MQConsumer(QtCore.QObject):
         command. When it is complete, the on_exchange_declareok method will
         be invoked by pika.
         """
-        print(f'Declaring exchange: {self._exchange}')
+        self.console_output.emit(f'Declaring exchange: {self._exchange}')
         # Note: using functools.partial is not required, it is demonstrating
         # how arbitrary data can be passed to the callback when it is called
         cb = functools.partial(
@@ -194,7 +196,7 @@ class MQConsumer(QtCore.QObject):
         :param str|unicode userdata: Extra user data (exchange name)
 
         """
-        print(f'Exchange declared: {userdata}')
+        self.console_output.emit(f'Exchange declared: {userdata}')
         self.setup_queue(self._listener_uuid)
 
     def setup_queue(self, queue_name):
@@ -205,7 +207,7 @@ class MQConsumer(QtCore.QObject):
         :param str|unicode queue_name: The name of the queue to declare.
 
         """
-        print(f'Declaring queue {queue_name}')
+        self.console_output.emit(f'Declaring queue {queue_name}')
         cb = functools.partial(self.on_queue_declareok, userdata=queue_name)
         self._channel.queue_declare(queue=queue_name, callback=cb)
 
@@ -221,7 +223,7 @@ class MQConsumer(QtCore.QObject):
 
         """
         queue_name = userdata
-        print(f'Binding {self._exchange} to {queue_name} with routing #')
+        self.console_output.emit(f'Binding {self._exchange} to {queue_name} with routing #')
         cb = functools.partial(self.on_bindok, userdata=queue_name)
         self._channel.queue_bind(
             queue_name,
@@ -237,7 +239,7 @@ class MQConsumer(QtCore.QObject):
         :param str|unicode userdata: Extra user data (queue name)
 
         """
-        print(f'Queue bound: {userdata}')
+        self.console_output.emit(f'Queue bound: {userdata}')
         self.set_qos()
 
     def set_qos(self):
@@ -258,7 +260,7 @@ class MQConsumer(QtCore.QObject):
         :param pika.frame.Method _unused_frame: The Basic.QosOk response frame
 
         """
-        print(f'QOS set to: {self._prefetch_count}')
+        self.console_output.emit(f'QOS set to: {self._prefetch_count}')
         self.start_consuming()
 
     def start_consuming(self):
@@ -271,7 +273,7 @@ class MQConsumer(QtCore.QObject):
         will invoke when a message is fully received.
 
         """
-        print('Issuing consumer related RPC commands')
+        self.console_output.emit('Issuing consumer related RPC commands')
         self.add_on_cancel_callback()
         self._consumer_tag = self._channel.basic_consume(
             self._listener_uuid, self.on_message)
@@ -284,7 +286,7 @@ class MQConsumer(QtCore.QObject):
         on_consumer_cancelled will be invoked by pika.
 
         """
-        print('Adding consumer cancellation callback')
+        self.console_output.emit('Adding consumer cancellation callback')
         self._channel.add_on_cancel_callback(self.on_consumer_cancelled)
 
     def on_consumer_cancelled(self, method_frame):
@@ -294,7 +296,7 @@ class MQConsumer(QtCore.QObject):
         :param pika.frame.Method method_frame: The Basic.Cancel frame
 
         """
-        print(f'Consumer was cancelled remotely, shutting down: {method_frame}')
+        self.console_output.emit(f'Consumer was cancelled remotely, shutting down: {method_frame}')
         self.connection_status.emit(False, 'Consumer was cancelled remotely')
         self._channel.close()
 
@@ -314,11 +316,12 @@ class MQConsumer(QtCore.QObject):
         """
         if (properties.app_id != self._listener_uuid):
             try:
-                self.message_signal.emit(json.loads(body.decode("utf-8")))
+                self.message_signal.emit(body.decode("utf-8"))
             except Exception as e:
-                print (e)
+                self.console_output.emit(str(e))
                 import traceback
-                print (traceback.format_exc())
+                self.console_output.emit(traceback.format_exc())
+
         self.acknowledge_message(basic_deliver.delivery_tag)
 
     def acknowledge_message(self, delivery_tag):
@@ -328,7 +331,7 @@ class MQConsumer(QtCore.QObject):
         :param int delivery_tag: The delivery tag from the Basic.Deliver frame
 
         """
-        # print('Acknowledging message %s', delivery_tag)
+        # self.console_output.emit('Acknowledging message %s', delivery_tag)
         self._channel.basic_ack(delivery_tag)
 
     def stop_consuming(self):
@@ -337,7 +340,7 @@ class MQConsumer(QtCore.QObject):
 
         """
         if self._channel:
-            print('Sending a Basic.Cancel RPC command to RabbitMQ')
+            self.console_output.emit('Sending a Basic.Cancel RPC command to RabbitMQ')
             cb = functools.partial(
                 self.on_cancelok, userdata=self._consumer_tag)
             self._channel.basic_cancel(self._consumer_tag, cb)
@@ -353,7 +356,7 @@ class MQConsumer(QtCore.QObject):
 
         """
         self._consuming = False
-        print(f'RabbitMQ acknowledged the cancellation of the consumer: {userdata}')
+        self.console_output.emit(f'RabbitMQ acknowledged the cancellation of the consumer: {userdata}')
         self.close_channel()
 
     def close_channel(self):
@@ -361,7 +364,7 @@ class MQConsumer(QtCore.QObject):
         Channel.Close RPC command.
 
         """
-        print('Closing the channel')
+        self.console_output.emit('Closing the channel')
         self._channel.close()
 
     def run(self):
@@ -385,13 +388,13 @@ class MQConsumer(QtCore.QObject):
         """
         if not self._closing:
             self._closing = True
-            print('Stopping')
+            self.console_output.emit('Stopping')
             if self._consuming:
                 self.stop_consuming()
                 self._connection.ioloop.start()
             else:
                 self._connection.ioloop.stop()
-            print('Stopped')
+            self.console_output.emit('Stopped')
 
     def threadsafe_stop(self):
 
@@ -406,6 +409,7 @@ class MQReconnectingConsumer(QtCore.QThread):
 
     mq_message = QtCore.Signal(str)
     connection_status = QtCore.Signal(bool, str)
+    console_output = QtCore.Signal(str)
 
     def __init__(self, parent, listener_uuid, qmpq_uri):
         QtCore.QThread.__init__(self, parent)
@@ -415,9 +419,10 @@ class MQReconnectingConsumer(QtCore.QThread):
         self._qmpq_uri = qmpq_uri
         self._exchange = None
         self._is_connected = False
+        self.console_output.connect(self.threadsafe_print)
 
     def connection_status(self, is_connected_ok, msg):
-        print (f"Connection status changed: {is_connected_ok} - {msg}")
+        self.console_output.emit(f"Connection status changed: {is_connected_ok} - {msg}")
         self.connected = is_connected_ok
 
     def mq_connect(self, exchange):
@@ -429,6 +434,7 @@ class MQReconnectingConsumer(QtCore.QThread):
         self._consumer.moveToThread(self)
         self._consumer.connection_status.connect(self.connection_status)
         self._consumer.message_signal.connect(self.mq_message)
+        self._consumer.console_output.connect(self.console_output)
         self._consumer.mq_connect()
         while True:
             try:
@@ -446,7 +452,7 @@ class MQReconnectingConsumer(QtCore.QThread):
         if self._consumer.should_reconnect:
             self._consumer.stop()
             reconnect_delay = self._get_reconnect_delay()
-            print(f'Reconnecting after {reconnect_delay} seconds')
+            self.console_output.emit(f'Reconnecting after {reconnect_delay} seconds')
             time.sleep(reconnect_delay)
             self._consumer = MQConsumer(None, self._listener_uuid, self._qmpq_uri, self._exchange)
             self._consumer.moveToThread(self)
@@ -462,6 +468,9 @@ class MQReconnectingConsumer(QtCore.QThread):
         if self._reconnect_delay > 30:
             self._reconnect_delay = 30
         return self._reconnect_delay
+
+    def threadsafe_print(self, data):
+        print(data)
 
     @property
     def connected(self):

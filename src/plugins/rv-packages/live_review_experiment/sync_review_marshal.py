@@ -307,8 +307,15 @@ class SyncReviewMarshal(MinorMode):
             print(
                 f"RECEIVE MESSAGE from session {SyncReviewMarshal.queue_name}: {message}"
             )
+        if not message:
+            return "", ""
+        try:
+            message_json = message if isinstance(message, dict) else json.loads(str(message))
+        except Exception as e:
+            print(e)
+            print(message)
+            return "", ""
 
-        message_json = json.loads(message)
         if message_json.get("schema") != "SYNC_REVIEW_1.0":
             print(f"Unhandled message schema: {message_json.get('schema')}")
             return "", ""
@@ -411,13 +418,13 @@ class SyncReviewMarshal(MinorMode):
             return
 
         if command_schema.startswith("OTIO_SESSION_1"):
-            print("Processing OTIO_SESSION_1 Change")
+            #("Processing OTIO_SESSION_1 Change")
             return SyncReviewMarshal.receive_graph_change(command)
         elif command_schema.startswith("PLAYBACK_SETTINGS_1"):
-            print("Processing PLAYBACK_SETTINGS_1 Change")
+            #print("Processing PLAYBACK_SETTINGS_1 Change")
             return SyncReviewMarshal.receive_playback_change(command)
         elif command_schema.startswith("Annotation.1"):
-            print("Processing Annotations")
+            #print("Processing Annotations")
             return SyncReviewMarshal.receive_annotation_change(command)
 
     @staticmethod
@@ -521,6 +528,8 @@ class SyncReviewMarshal(MinorMode):
         """
         Receives paint start command and starts the strok
         """
+
+
         paint = payload.get("paint", {})
         layer_range = paint.get("layer_range", {})
 
@@ -530,6 +539,7 @@ class SyncReviewMarshal(MinorMode):
 
         if start_frame is None or duration is None or uuid is None:
             return
+
 
         frame = start_frame + duration - 1  # assuming same rate here
 

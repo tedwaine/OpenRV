@@ -9,7 +9,6 @@ class MQPublisheImpl(QtCore.QObject):
     """
     EXCHANGE_TYPE = ExchangeType.fanout
     PUBLISH_INTERVAL = 1
-    ROUTING_KEY = 'example.text'
 
     connection_status = QtCore.Signal(bool, str)
 
@@ -345,6 +344,7 @@ class MQPublisher(QtCore.QThread):
 
     mq_message = QtCore.Signal(str)
     connection_status = QtCore.Signal(bool, str)
+    do_print = QtCore.Signal(str)
 
     def __init__(self, parent, publisher_uuid, qmpq_uri):
         QtCore.QThread.__init__(self, parent)
@@ -371,10 +371,14 @@ class MQPublisher(QtCore.QThread):
             try:
                 self._publisher.run()
             except Exception as e:
-                print (e)
-                self._publisher.stop()
+                # python print in a thread can crash RV. Probably to do with
+                # the console capturing python output
+                self.do_print.emit(e)
                 break
             self._maybe_reconnect()
+
+    def printer(self, data):
+        print(data)
 
     def send_message(self, msg):
         self._publisher.queue_message(msg)
